@@ -54,11 +54,10 @@
 
 #define DEFAULT_CHARGE_VOLTAGE  4.2
 #define DEFAULT_CHARGE_CURRENT  1.1
-#define DEFAULT_CHARGE_TIME     11.1
-#define knob_increment          50
-#define Left_Volt_Increment     5
+#define knob_increment          4
+#define Left_Volt_Increment     5.0
 #define Right_Volt_Increment    0.1
-#define Left_Amp_Increment      1
+#define Left_Amp_Increment      1.0
 #define Right_Amp_Increment     0.1
 
 
@@ -66,10 +65,15 @@
 int Charge_State_g = Not_Charging;
 int Menu_State_g = 0;
 
+//Tracks change in buttons
 int Button_Pressed = 0;
+//Tracks state of buttons (both pressed = 3)
+int Button_State = 0;
 
-double Charging_Voltage = DEFAULT_CHARGE_VOLTAGE;
-double Charging_Current = DEFAULT_CHARGE_CURRENT;
+float Charging_Voltage = DEFAULT_CHARGE_VOLTAGE;
+float Charging_Current = DEFAULT_CHARGE_CURRENT;
+unsigned long Charging_Time = 0;
+unsigned long Charging_Start_Time = 0;
 
 Metro EndPrecharging(1500);
 Metro ChargeMenuFlip(3000);
@@ -112,7 +116,7 @@ void setup() {
   KNOB_Buttons_Init(L_debounce, R_debounce);
 
   // SET DEFAULT STARTUP MENU
-  LCD_Next_Menu(Menu_State_g, DEFAULT_CHARGE_VOLTAGE, DEFAULT_CHARGE_CURRENT, DEFAULT_CHARGE_TIME, lcd);
+  LCD_Next_Menu(Menu_State_g, DEFAULT_CHARGE_VOLTAGE, DEFAULT_CHARGE_CURRENT, Charging_Time, lcd);
 
 }
 
@@ -140,6 +144,8 @@ void loop() {
         Charge_State_g = Error;
       }
 
+      Charging_Start_Time = 0;
+
       break;
 
     case Start_Precharging:
@@ -150,7 +156,7 @@ void loop() {
       digitalWrite(POS_CONTACTOR_CTRL, HIGH);
       Charge_State_g = Precharging;
       EndPrecharging.reset();
-      //START PRECHARGING TIMEOUT TIMER HERE
+      Charging_Start_Time = millis();
 
       break;
 
@@ -159,6 +165,7 @@ void loop() {
       if (digitalRead(POS_CONTACTOR_SENSE) && digitalRead(NEG_CONTACTOR_SENSE) && digitalRead(CONTACTOR_OFF_3v3) && !digitalRead(CONTACTOR_ON_3v3))
       {
         Charge_State_g = Charging;
+        
       }
       else if (EndPrecharging.check())
       {
@@ -206,6 +213,11 @@ void loop() {
   //
   //
   Button_Pressed = KNOB_Buttons_Check(L_debounce, R_debounce);
+  Button_State += Button_Pressed;
+
+  if (Charging_Start_Time > 0){
+    Charging_Time = millis() - Charging_Start_Time;
+  }
 
   long newPosLeft = KNOB_Turn_Check_L(knobLeft);
   long newPosRight = KNOB_Turn_Check_R(knobRight);
@@ -216,6 +228,8 @@ void loop() {
         if (Button_Pressed > 0)
           {
             Menu_State_g = Custom_Or_Default;
+            LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+
           }
 
           break;
@@ -224,19 +238,27 @@ void loop() {
         if (Button_Pressed == 1)
         {
           Menu_State_g = Set_Voltage;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+
         }
 
         else if (Button_Pressed == 2)
         {
           Menu_State_g = Ask_to_Start;
+          Charging_Voltage = DEFAULT_CHARGE_VOLTAGE;
+          Charging_Current = DEFAULT_CHARGE_CURRENT;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+
           
         }
 
-        else if (Button_Pressed == 3)
+        else if ((Button_Pressed == 3)||(Button_State==3))
         {
           //Should we display something when this happens?
           Charge_State_g = Charging_Shutdown;
           Menu_State_g = Startup_Menu;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+          
         }
 
         break;
@@ -244,40 +266,50 @@ void loop() {
       case Set_Voltage:
         //Asssuming turn clockwise increases position and voltage
         //Left knob
-        if(newPosLeft > knob_increment)
+        if(newPosLeft >= knob_increment)
         {
-          knobLeft.write(0);
+          knobLeft.write(newPosLeft-knob_increment);
           Charging_Voltage += Left_Volt_Increment;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+
         }
-        else if(newPosLeft < (0-knob_increment))
+        else if(newPosLeft <= (0-knob_increment))
         {
-          knobLeft.write(0);
+          knobLeft.write(newPosLeft+knob_increment);
           Charging_Voltage -= Left_Volt_Increment;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+
         }
 
 
           //Right KNOB
-        if(newPosRight > knob_increment)
+        if(newPosRight >= knob_increment)
         {
-          knobRight.write(0);
+          knobRight.write(newPosRight-knob_increment);
           Charging_Voltage += Right_Volt_Increment;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+
         }
-        else if(newPosLeft < (0-knob_increment))
+        else if(newPosRight <= (0-knob_increment))
         {
-          knobLeft.write(0);
+          knobRight.write(newPosRight+knob_increment);
           Charging_Voltage -= Right_Volt_Increment;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
 
         
         if (Button_Pressed == 2)
         {
           Menu_State_g = Set_Current;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
 
-        if (Button_Pressed == 3)
+        if ((Button_Pressed == 3)||(Button_State==3))
         {
           Menu_State_g = Startup_Menu;
           Charge_State_g = Charging_Shutdown;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+          
         }
 
         break;
@@ -287,38 +319,45 @@ void loop() {
         //Left knob
         if(newPosLeft > knob_increment)
         {
-          knobLeft.write(0);
+          knobLeft.write(newPosLeft-knob_increment);
           Charging_Current += Left_Amp_Increment;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
         else if(newPosLeft < (0-knob_increment))
         {
-          knobLeft.write(0);
+          knobLeft.write(newPosLeft+knob_increment);
           Charging_Current -= Left_Amp_Increment;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
 
 
           //Right KNOB
         if(newPosRight > knob_increment)
         {
-          knobRight.write(0);
+          knobRight.write(newPosRight-knob_increment);
           Charging_Current += Right_Amp_Increment;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
-        else if(newPosLeft < (0-knob_increment))
+        else if(newPosRight < (0-knob_increment))
         {
-          knobLeft.write(0);
+          knobRight.write(newPosRight+knob_increment);
           Charging_Current -= Right_Amp_Increment;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
 
         
         if (Button_Pressed == 2)
         {
           Menu_State_g = Ask_to_Start;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
 
-        if (Button_Pressed == 3)
+        if ((Button_Pressed == 3)||(Button_State==3))
         {
           Menu_State_g = Startup_Menu;
           Charge_State_g = Charging_Shutdown;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+          
         }
 
         break;
@@ -327,50 +366,63 @@ void loop() {
         if (Button_Pressed == 1)
         {
           Menu_State_g = Custom_Or_Default;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
         else if (Button_Pressed == 2)
         {
           Menu_State_g = Charging_Menu1;
           ChargeMenuFlip.reset();   //reset timer to change charge menus
-          Charge_State_g = Precharging;
+          Charge_State_g = Start_Precharging;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
-        else if (Button_Pressed == 3)
+        else if ((Button_Pressed == 3)||(Button_State==3))
         {
           Menu_State_g = Startup_Menu;
           Charge_State_g = Charging_Shutdown;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+          
         }
 
         break;
 
       case Charging_Menu1:
-        if (Button_Pressed == 3)
+        if ((Button_Pressed == 3)||(Button_State==3))
         {
           Menu_State_g = Startup_Menu;
           Charge_State_g = Charging_Shutdown;
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+          
         }
 
         if (ChargeMenuFlip.check())
         {
           Menu_State_g = Charge_Menu2;
           ChargeMenuFlip.reset();
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
+
 
         break;
 
       case Charging_Menu2:
-        if (Button_Pressed == 3)
+        if ((Button_Pressed == 3)||(Button_State==3))
         {
           Menu_State_g = Startup_Menu;
           Charge_State_g = Charging_Shutdown;
+          ChargeMenuFlip.reset();
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
+          
         }
 
         if (ChargeMenuFlip.check())
         {
           Menu_State_g = Charge_Menu1;
           ChargeMenuFlip.reset();
+          LCD_Next_Menu(Menu_State_g, Charging_Voltage, Charging_Current, Charging_Time, lcd);
         }
 
         break;
+
 
       default:
         //Nothing?

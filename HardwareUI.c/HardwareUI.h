@@ -43,7 +43,7 @@
 #define LCD_P6 7
 
 // LCD SIZE
-#define LCD_ROWS 2
+#define LCD_ROWS 4
 #define LCD_COLUMNS 20
 
 //Menu Stuff
@@ -60,28 +60,29 @@
 
 
 
-void KNOB_Buttons_Init(Bounce L_debounce, Bounce R_debounce);
+void KNOB_Buttons_Init(Bounce &L_debounce, Bounce &R_debounce);
 
 
 //If left pressed return 1
 //If right pressed return 2
 //If both pressed return 3
-int KNOB_Buttons_Check(Bounce L_debounce, Bounce R_debounce);
+int KNOB_Buttons_Check(Bounce &L_debounce, Bounce &R_debounce);
 
 
-long KNOB_Turn_Check_L(Encoder knobLeft); 
+long KNOB_Turn_Check_L(Encoder &knobLeft); 
 
 
-long KNOB_Turn_Check_R(Encoder knobRight); 
+long KNOB_Turn_Check_R(Encoder &knobRight); 
 
-void LCD_Init(LiquidCrystal lcd);
+void LCD_Init(LiquidCrystal &lcd);
 
 void LCD_setBacklight(uint8_t r, uint8_t g, uint8_t b, int brightness); 
 
 
-void LCD_Next_Menu(int n, double Charging_Voltage, double Charging_Current, double Charging_Time, LiquidCrystal lcd);
+void LCD_Next_Menu(int n, double Charging_Voltage, double Charging_Current, double Charging_Time, LiquidCrystal &lcd);
 
 
-void LCD_Set_Menu(LiquidCrystal lcd, String line1, String line2, String line3, String line4);
+void LCD_Set_Menu(LiquidCrystal &lcd, String line1, String line2, String line3, String line4);
+
 
 #endif

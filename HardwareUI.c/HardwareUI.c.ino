@@ -12,7 +12,7 @@
 
 
 
-void KNOB_Buttons_Init(Bounce L_debounce, Bounce R_debounce){
+void KNOB_Buttons_Init(Bounce &L_debounce, Bounce &R_debounce){
     // SETUP UP KNOB PUSHBUTTONS
   // SETUP UP LEFT BUTTON WITH PULL-UP
   pinMode(KNOB_L_BUTTON,INPUT_PULLUP);
@@ -34,32 +34,41 @@ void KNOB_Buttons_Init(Bounce L_debounce, Bounce R_debounce){
 //If left pressed return 1
 //If right pressed return 2
 //If both pressed return 3
-int KNOB_Buttons_Check(Bounce L_debounce, Bounce R_debounce) {
+int KNOB_Buttons_Check(Bounce &L_debounce, Bounce &R_debounce) {
   int pressed = 0;
   
   // Update the Bounce instances :
   L_debounce.update();
   R_debounce.update();
 
-  //Serial.println("checking knobs"); It is checking knobs
 
-  // LEFT BUTTON PRESSED
+  // LEFT BUTTON RELEASED
   if (L_debounce.rose()) {
-    pressed += 1;
-    Serial.print("Left Pressed");
+    pressed --;
+  }
+
+  //LEFT BUTTON DEPRESSED
+  if(L_debounce.fell()){
+    pressed ++;
   }
   
-  // RIGHT BUTTON PRESSED
+  // RIGHT BUTTON RELEASED
   if(R_debounce.rose()) {
-    pressed += 2;
-    Serial.print("Right Pressed");
+    pressed -= 2;
   }
 
+  //RIGHT BUTTON DEPRESSED
+  if(R_debounce.fell()){
+    pressed +=2;
+  }
+
+
+  
   return pressed;
 }
 
 
-long KNOB_Turn_Check_L(Encoder knobLeft) {
+long KNOB_Turn_Check_L(Encoder &knobLeft) {
   
   // ENCODER STUFF
   long newLeft;
@@ -69,7 +78,7 @@ long KNOB_Turn_Check_L(Encoder knobLeft) {
 }
 
 
-long KNOB_Turn_Check_R(Encoder knobRight) {
+long KNOB_Turn_Check_R(Encoder &knobRight) {
   
   // ENCODER STUFF
   long newRight;
@@ -79,9 +88,9 @@ long KNOB_Turn_Check_R(Encoder knobRight) {
   return newRight;
 }
 
-void LCD_Init(LiquidCrystal lcd){
+void LCD_Init(LiquidCrystal &lcd){
   // SETUP LCD SIZE
-  lcd.begin(20, 4);
+  lcd.begin(LCD_COLUMNS, LCD_ROWS);
 
   // SETUP LCD BACKLIGHT PINS
   pinMode(LCD_RED, OUTPUT);
@@ -119,7 +128,8 @@ void LCD_setBacklight(uint8_t r, uint8_t g, uint8_t b, int brightness) {
   return;
 }
 
-void LCD_Next_Menu(int n, double Charging_Voltage, double Charging_Current, double Charging_Time, LiquidCrystal lcd) {
+void LCD_Next_Menu(int n, double Charging_Voltage, double Charging_Current, double Charging_Time, LiquidCrystal &lcd) {
+
   String line1,line2,line3,line4;
 
   switch(n){
@@ -149,28 +159,40 @@ void LCD_Next_Menu(int n, double Charging_Voltage, double Charging_Current, doub
       break;
     case Ask_to_Start:
       line1 = " Start Charging At: ";
-      line2 = String(Charging_Voltage) + " V";
-      line3 = "                    ";
-      line4 = "Yes               NO";
+      line2 = "     " + String(Charging_Voltage) + " V";
+      line3 = "     " + String(Charging_Current) + " A";;
+      line4 = "NO               YES";
       break;
     case Charge_Menu1:
+
+
+      line1 = String((int(Charging_Time) / 1000)%60);
+      line3 = String((int(Charging_Time) / (60*1000))%60);
+      line4 = String(int((Charging_Time / (60*60*1000))));
+
+      line2 = "      " + line4 + ":" + line3 + ":" + line1;
+    
       line1 = "   Charge Time:   ";
-      line2 = " CURRENT_TIME_IDK "; // Charge time lol
       line3 = "                  ";
       line4 = "Press Both to Stop";
       break;
+      
     case Charge_Menu2:
       line1 = "   Charging to:   ";
-      line2 = String(Charging_Voltage) + " V";
-      line3 = String(Charging_Current) + " A";
+      line2 = "     " + String(Charging_Voltage) + " V";
+      line3 = "     " + String(Charging_Current) + " A";
       line4 = "Press Both to Stop";
       break;
+
+      
     default:
       line1 = "   Missouri S&T   ";
       line2 = " Formula Electric ";
       line3 = "  Screen Number:  ";
       line4 = "    LCD Error     ";
+      break;
   }
+
 
   LCD_Set_Menu(lcd,line1,line2,line3,line4);
 
@@ -178,19 +200,18 @@ void LCD_Next_Menu(int n, double Charging_Voltage, double Charging_Current, doub
 }
 
 
-void LCD_Set_Menu(LiquidCrystal lcd, String line1, String line2, String line3, String line4) {
-  String addressLine1 = line1 + line3 + line2 + line4;
+void LCD_Set_Menu(LiquidCrystal &lcd, String line1, String line2, String line3, String line4) {
   
   lcd.clear();
   
   lcd.setCursor(0,0);
-  lcd.print(addressLine1);
-//  lcd.setCursor(0,1);
-//  lcd.print(line2);
-//  lcd.setCursor(40,0);
-//  lcd.print(line3);
-//  lcd.setCursor(60,0);
-//  lcd.print(line4);
+  lcd.print(line1);
+  lcd.setCursor(0,1);
+  lcd.print(line2);
+  lcd.setCursor(0,2);
+  lcd.print(line3);
+  lcd.setCursor(0,3);
+  lcd.print(line4);
   
   return;
 }
