@@ -11,7 +11,8 @@
  *    START_CHARGING, STOP_CHARGING
  */
  
-//#include "CAN.h"
+#include "Can_EX.h"
+#include <FlexCAN_T4.h>
 #include <Metro.h>
 #include "HardwareUI.h"
 #include <LiquidCrystal.h>
@@ -61,7 +62,14 @@
 #define Right_Amp_Increment     0.1
 
 
+FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2;//Car CAN
+FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> Can3;//Charger CAN
 
+CAN_message_t msg;  //message to send over CAN - > tp.write
+
+CAN_message_t Rmsg; //message to store CAN.read value
+
+Metro ChargerHeartbeat(1000);
 int Charge_State_g = Not_Charging;
 int Menu_State_g = 0;
 
@@ -97,6 +105,31 @@ LiquidCrystal lcd(LCD_P1,LCD_P2,LCD_P3,LCD_P4,LCD_P5,LCD_P6);
 int brightness = 255;
 
 
+//CAN VARIABLES%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//Send Charger Msg variables
+uint16_t TargetCurrent, TargetVoltage;
+bool ChargeControl;
+
+//Read Charger Msg variables
+uint16_t ChargerVoltage = 0;
+uint16_t ChargerCurrent = 0;
+uint8_t Charger_Status = 0;
+
+//Read AMS Status variables
+uint8_t FaultMessage;
+uint8_t Contactors;
+uint16_t MaxCellTemp, MinCellTemp, StateofCharge;
+
+//Read AMS Voltages
+uint16_t PackVoltage, VehicleVoltage, MaxCellVoltage, MinCellVoltage;
+
+//Read AMS Currents
+uint16_t PackCurrent, DischargeCurrentLimit, ChargeCurrentLimit, PeakCurrent;
+
+//Read Cell Voltages and Temperatures
+uint8_t buff[245];
+
+
 void setup() {
   pinMode(NEG_CONTACTOR_CTRL, OUTPUT);
   pinMode(POS_CONTACTOR_CTRL, OUTPUT);
@@ -123,6 +156,40 @@ void setup() {
 
 void loop() {
 
+
+//CAN MESSAGING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if ( ChargerHeartbeat.check() ) 
+  {
+    SendChargerMsg(TargetCurrent, TargetVoltage, ChargeControl, msg);
+    Can2.write(msg);
+    //Serial.println("sending don't charge...");
+    //canSniff(msg);
+    ChargerHeartbeat.reset();
+    for (int i = 0; i < 245; i++)
+    {
+      Serial.print(buff[i]);
+    }
+    Serial.print( FaultMessage, HEX);
+    Serial.print( Contactors, HEX );
+    Serial.print( MaxCellTemp, HEX );
+    Serial.print( MinCellTemp, HEX );
+    Serial.print( ChargeControl, HEX );
+    Serial.print( PackVoltage, HEX );
+    Serial.print( VehicleVoltage, HEX );
+    Serial.print( MaxCellVoltage, HEX );
+    Serial.print( MinCellVoltage, HEX );
+    Serial.print( PackCurrent, HEX );
+    Serial.print( DischargeCurrentLimit, HEX );
+    Serial.print( ChargeCurrentLimit, HEX );
+    Serial.print( PeakCurrent, HEX);
+
+//      if (Can2.read(msg))
+//      {
+//        canSniff(msg);
+//      }
+
+
+
   // Always Check Faults --> GPIO INTERRUPT
   if(!SC_STATE_3v3 || !AMS_FAULT || !IMD_FAULT)
     {
@@ -131,6 +198,9 @@ void loop() {
       digitalWrite(POS_CONTACTOR_CTRL, LOW);
     }
 
+  }
+
+//CAN END HERE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
    

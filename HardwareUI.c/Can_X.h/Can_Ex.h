@@ -37,33 +37,33 @@ uint16_t PackVoltage, VehicleVoltage, MaxCellVoltage, MinCellVoltage;
 uint16_t PackCurrent, DischargeCurrentLimit, ChargeCurrentLimit, PeakCurrent;
 
 //Read Cell Voltages and Temperatures
-uint8_t buff[245];
+uint8_t buff[240];
 
 //untouched send/receive example
 void myCallback(const ISOTP_data &config, const uint8_t *buf) {
-//  Serial.print("ID: ");
-//  Serial.print(config.id, HEX);
-//  Serial.print("\tLEN: ");
-//  Serial.print(config.len);
-//  Serial.print("\tFINAL ARRAY: ");
-//  for ( int i = 0; i < config.len; i++ ) {
-//    Serial.print(buf[i], HEX);
-//    Serial.print(" ");
-//  } Serial.println();
+  Serial.print("ID: ");
+  Serial.print(config.id, HEX);
+  Serial.print("\tLEN: ");
+  Serial.print(config.len);
+  Serial.print("\tFINAL ARRAY: ");
+  for ( int i = 0; i < config.len; i++ ) {
+    Serial.print(buf[i], HEX);
+    Serial.print(" ");
+  } Serial.println();
 }
 //untouched send/receive example
 void canSniff(const CAN_message_t &msg) {
-  Serial.print("MB "); Serial.print(msg.mb);
-  Serial.print(" OVER: "); Serial.print(msg.flags.overrun);
-  Serial.print(" LEN: "); Serial.print(msg.len);
-  Serial.print(" EXT: "); Serial.print(msg.flags.extended);
-  Serial.print(" TS: "); Serial.print(msg.timestamp);
-  Serial.print(" ID: "); Serial.print(msg.id, HEX);
-  Serial.print(" BUS: "); Serial.print(msg.bus);
-  Serial.print(" Buffer: ");
-  for ( uint8_t i = 0; i < msg.len; i++ ) {
-    Serial.print(msg.buf[i], HEX); Serial.print(" ");
-  } Serial.println();
+//  Serial.print("MB "); Serial.print(msg.mb);
+//  Serial.print(" AAAAAAAAAAAAAAAAAAAAAAAa: "); Serial.print(msg.flags.overrun);
+//  Serial.print(" LEN: "); Serial.print(msg.len);
+//  Serial.print(" EXT: "); Serial.print(msg.flags.extended);
+//  Serial.print(" TS: "); Serial.print(msg.timestamp);
+//  Serial.print(" ID: "); Serial.print(msg.id, HEX);
+//  Serial.print(" BUS: "); Serial.print(msg.bus);
+//  Serial.print(" Buffer: ");
+//  for ( uint8_t i = 0; i < msg.len; i++ ) {
+//    Serial.print(msg.buf[i], HEX); Serial.print(" ");
+//  } Serial.println();
 
     switch(msg.id){
 
@@ -114,7 +114,7 @@ void canSniff(const CAN_message_t &msg) {
       break;
 
     default:
-      //Serial.println("WTF");
+      Serial.println("WTF");
       break;
     }
 }
@@ -215,7 +215,7 @@ void ReadAMSCurrents(uint16_t &PackCurrent, uint16_t &DischargeCurrentLimit, uin
 }
 
 
-void ReadCellVoltandTemp(uint8_t * buff, const CAN_message_t &msg)
+bool ReadCellVoltandTemp(uint8_t * buff, const CAN_message_t &msg)
 {
   for (int j = 0; j < 7; j++)
   {
@@ -258,6 +258,11 @@ void setup() {
 //  tp2.setWriteBus(&Can3); /* we write to this bus */
 //  tp2.onReceive(myCallback); /* set callback */
 
+
+//TargetCurrent = 0;
+//TargetVoltage = 0;
+//ChargeControl = 0;
+
 }
 
 void loop() {
@@ -267,37 +272,26 @@ void loop() {
   {
     SendChargerMsg(TargetCurrent, TargetVoltage, ChargeControl, msg);
     Can2.write(msg);
-    Serial.println("sending don't charge...");
-    canSniff(msg);
+    //Serial.println("sending don't charge...");
+    //canSniff(msg);
     ChargerHeartbeat.reset();
-//    for (uint16_t i = 0; i < 245; i++)
-//    {
-//      Serial.print(buff[i]);
-//    }
-////    Serial.print(buff[i] 
-//    //Serial.print("Hello World");
-//    Serial.print( FaultMessage);
-//    Serial.print( Contactors );
-//    Serial.print( MaxCellTemp );
-//    Serial.print( MinCellTemp );
-//    Serial.print( StateofCharge );
-//    Serial.print( PackVoltage );
-//    Serial.print( VehicleVoltage );
-//    Serial.print( MaxCellVoltage );
-//    Serial.print( MinCellVoltage );
-//    Serial.print( PackCurrent );
-//    Serial.print( DischargeCurrentLimit );
-//    Serial.print( ChargeCurrentLimit );
-//    Serial.print( PeakCurrent);
-//  }
-
-
-  }
-
-  if (Can2.read(msg))
-  {
-    canSniff(msg);
-    
+    for (int i = 0; i < 2; i++)
+    {
+      Serial.print(buff[i]);
+    }
+//    Serial.print( FaultMessage, HEX);
+//    Serial.print( Contactors, HEX );
+//    Serial.print( MaxCellTemp, HEX );
+//    Serial.print( MinCellTemp, HEX );
+//    Serial.print( ChargeControl, HEX );
+//    Serial.print( PackVoltage, HEX );
+//    Serial.print( VehicleVoltage, HEX );
+//    Serial.print( MaxCellVoltage, HEX );
+//    Serial.print( MinCellVoltage, HEX );
+//    Serial.print( PackCurrent, HEX );
+//    Serial.print( DischargeCurrentLimit, HEX );
+//    Serial.print( ChargeCurrentLimit, HEX );
+//    Serial.print( PeakCurrent, HEX);
   }
 
 

@@ -1,3 +1,10 @@
+#include <circular_buffer.h>
+#include <FlexCAN_T4.h>
+#include <imxrt_flexcan.h>
+#include <isotp.h>
+#include <isotp_server.h>
+#include <kinetis_flexcan.h>
+
 // HARDWARE USER CONTROL COD
 
 // LIBRARIES

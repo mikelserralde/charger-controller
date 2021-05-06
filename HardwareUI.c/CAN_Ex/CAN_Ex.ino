@@ -4,66 +4,36 @@
 isotp<RX_BANKS_16, 512> tp; /* 16 slots for multi-ID support, at 512bytes buffer each payload rebuild */
 isotp<RX_BANKS_16, 512> tp2;
 
-FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2;//Car CAN
-FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> Can3;//Charger CAN
+//FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can2;//Car CAN
+//FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> Can3;//Charger CAN
+//
+//CAN_message_t msg;  //message to send over CAN - > tp.write
+//
+//CAN_message_t Rmsg; //message to store CAN.read value
 
-CAN_message_t msg;  //message to send over CAN - > tp.write
-
-CAN_message_t Rmsg; //message to store CAN.read value
-
-Metro ChargerHeartbeat(1000);
+//Metro ChargerHeartbeat(1000);
 
 
 int msgcnt=0;
 
-//Send Charger Msg variables
-uint16_t TargetCurrent, TargetVoltage;
-bool ChargeControl;
 
-//Read Charger Msg variables
-uint16_t ChargerVoltage = 0;
-uint16_t ChargerCurrent = 0;
-uint8_t Charger_Status = 0;
 
-//Read AMS Status variables
-uint16_t FaultMessage;
-uint8_t Contactors;
-uint16_t MaxCellTemp, MinCellTemp, StateofCharge;
 
-//Read AMS Voltages
-uint16_t PackVoltage, VehicleVoltage, MaxCellVoltage, MinCellVoltage;
-
-//Read AMS Currents
-uint16_t PackCurrent, DischargeCurrentLimit, ChargeCurrentLimit, PeakCurrent;
-
-//Read Cell Voltages and Temperatures
-uint8_t buff[245];
 
 //untouched send/receive example
 void myCallback(const ISOTP_data &config, const uint8_t *buf) {
-//  Serial.print("ID: ");
-//  Serial.print(config.id, HEX);
-//  Serial.print("\tLEN: ");
-//  Serial.print(config.len);
-//  Serial.print("\tFINAL ARRAY: ");
-//  for ( int i = 0; i < config.len; i++ ) {
-//    Serial.print(buf[i], HEX);
-//    Serial.print(" ");
-//  } Serial.println();
+  Serial.print("ID: ");
+  Serial.print(config.id, HEX);
+  Serial.print("\tLEN: ");
+  Serial.print(config.len);
+  Serial.print("\tFINAL ARRAY: ");
+  for ( int i = 0; i < config.len; i++ ) {
+    Serial.print(buf[i], HEX);
+    Serial.print(" ");
+  } Serial.println();
 }
 //untouched send/receive example
 void canSniff(const CAN_message_t &msg) {
-  Serial.print("MB "); Serial.print(msg.mb);
-  Serial.print(" OVER: "); Serial.print(msg.flags.overrun);
-  Serial.print(" LEN: "); Serial.print(msg.len);
-  Serial.print(" EXT: "); Serial.print(msg.flags.extended);
-  Serial.print(" TS: "); Serial.print(msg.timestamp);
-  Serial.print(" ID: "); Serial.print(msg.id, HEX);
-  Serial.print(" BUS: "); Serial.print(msg.bus);
-  Serial.print(" Buffer: ");
-  for ( uint8_t i = 0; i < msg.len; i++ ) {
-    Serial.print(msg.buf[i], HEX); Serial.print(" ");
-  } Serial.println();
 
     switch(msg.id){
 
@@ -114,7 +84,7 @@ void canSniff(const CAN_message_t &msg) {
       break;
 
     default:
-      //Serial.println("WTF");
+      Serial.println("WTF");
       break;
     }
 }
@@ -156,7 +126,7 @@ void SendChargerMsg(uint16_t &current, uint16_t &voltage, bool ChargeControl, CA
 }
 
 //Contactors: if a 1 means closed: 100 contact+ closed, 010 contact - closed, 001 contact precharge closed, 111 all closed etc.
-void ReadAMSStatus(uint16_t &FaultMessage, uint8_t &Contactors, uint16_t &MaxCellTemp, uint16_t &MinCellTemp, uint16_t StateofCharge, const CAN_message_t &msg)
+void ReadAMSStatus(uint8_t &FaultMessage, uint8_t &Contactors, uint16_t &MaxCellTemp, uint16_t &MinCellTemp, uint16_t StateofCharge, const CAN_message_t &msg)
 {
   FaultMessage = msg.buf[0];
   Contactors = ((msg.buf[1] >> 4) & ( 0x07));
@@ -215,7 +185,7 @@ void ReadAMSCurrents(uint16_t &PackCurrent, uint16_t &DischargeCurrentLimit, uin
 }
 
 
-void ReadCellVoltandTemp(uint8_t * buff, const CAN_message_t &msg)
+bool ReadCellVoltandTemp(uint8_t * buff, const CAN_message_t &msg)
 {
   for (int j = 0; j < 7; j++)
   {
@@ -229,81 +199,75 @@ void ReadCellVoltandTemp(uint8_t * buff, const CAN_message_t &msg)
 
 
 
-void setup() {
-  //untouched send/receive example
-  Serial.begin(9600); delay(400);
-  Can2.begin();
-  Can2.setClock(CLK_60MHz);
-  Can2.setBaudRate(500000);
-  Can2.setMaxMB(16);
-  Can2.setMBFilter(ACCEPT_ALL);
-  Can2.enableFIFO();
-  Can2.enableFIFOInterrupt();
-  Can2.onReceive(canSniff);
-//  tp.begin();
-//  tp.setWriteBus(&Can2); /* we write to this bus */
-//  tp.onReceive(myCallback); /* set callback */
-
-//duplicated send/receive example
-  Can3.begin();
-  Can3.setClock(CLK_60MHz);
-  Can3.setBaudRate(500000);
-  Can3.setMaxMB(16);
-
-  Can3.setMBFilter(ACCEPT_ALL);
-  Can3.enableFIFO();
-  Can3.enableFIFOInterrupt();
-  Can3.onReceive(canSniff);
-//  tp2.begin();
-//  tp2.setWriteBus(&Can3); /* we write to this bus */
-//  tp2.onReceive(myCallback); /* set callback */
-
-}
-
-void loop() {
-
-  
-  if ( ChargerHeartbeat.check() ) 
-  {
-    SendChargerMsg(TargetCurrent, TargetVoltage, ChargeControl, msg);
-    Can2.write(msg);
-    Serial.println("sending don't charge...");
-    canSniff(msg);
-    ChargerHeartbeat.reset();
-//    for (uint16_t i = 0; i < 245; i++)
+//void setup() {
+//  //untouched send/receive example
+//  Serial.begin(9600); delay(400);
+//  Can2.begin();
+//  Can2.setClock(CLK_60MHz);
+//  Can2.setBaudRate(500000);
+//  Can2.setMaxMB(16);
+//  Can2.setMBFilter(ACCEPT_ALL);
+//  Can2.enableFIFO();
+//  Can2.enableFIFOInterrupt();
+//  Can2.onReceive(canSniff);
+////  tp.begin();
+////  tp.setWriteBus(&Can2); /* we write to this bus */
+////  tp.onReceive(myCallback); /* set callback */
+//
+////duplicated send/receive example
+//  Can3.begin();
+//  Can3.setClock(CLK_60MHz);
+//  Can3.setBaudRate(500000);
+//  Can3.setMaxMB(16);
+//
+//  Can3.setMBFilter(ACCEPT_ALL);
+//  Can3.enableFIFO();
+//  Can3.enableFIFOInterrupt();
+//  Can3.onReceive(canSniff);
+////  tp2.begin();
+////  tp2.setWriteBus(&Can3); /* we write to this bus */
+////  tp2.onReceive(myCallback); /* set callback */
+//
+//
+////TargetCurrent = 0;
+////TargetVoltage = 0;
+////ChargeControl = 0;
+//
+//}
+//
+//void loop() {
+//
+//  
+//  if ( ChargerHeartbeat.check() ) 
+//  {
+//    SendChargerMsg(TargetCurrent, TargetVoltage, ChargeControl, msg);
+//    Can2.write(msg);
+//    //Serial.println("sending don't charge...");
+//    //canSniff(msg);
+//    ChargerHeartbeat.reset();
+//    for (int i = 0; i < 2; i++)
 //    {
 //      Serial.print(buff[i]);
 //    }
-////    Serial.print(buff[i] 
-//    //Serial.print("Hello World");
-//    Serial.print( FaultMessage);
-//    Serial.print( Contactors );
-//    Serial.print( MaxCellTemp );
-//    Serial.print( MinCellTemp );
-//    Serial.print( StateofCharge );
-//    Serial.print( PackVoltage );
-//    Serial.print( VehicleVoltage );
-//    Serial.print( MaxCellVoltage );
-//    Serial.print( MinCellVoltage );
-//    Serial.print( PackCurrent );
-//    Serial.print( DischargeCurrentLimit );
-//    Serial.print( ChargeCurrentLimit );
-//    Serial.print( PeakCurrent);
+////    Serial.print( FaultMessage, HEX);
+////    Serial.print( Contactors, HEX );
+////    Serial.print( MaxCellTemp, HEX );
+////    Serial.print( MinCellTemp, HEX );
+////    Serial.print( ChargeControl, HEX );
+////    Serial.print( PackVoltage, HEX );
+////    Serial.print( VehicleVoltage, HEX );
+////    Serial.print( MaxCellVoltage, HEX );
+////    Serial.print( MinCellVoltage, HEX );
+////    Serial.print( PackCurrent, HEX );
+////    Serial.print( DischargeCurrentLimit, HEX );
+////    Serial.print( ChargeCurrentLimit, HEX );
+////    Serial.print( PeakCurrent, HEX);
 //  }
-
-
-  }
-
-  if (Can2.read(msg))
-  {
-    canSniff(msg);
-    
-  }
+//
 
 
 
 
 
 
-
-}
+//}
