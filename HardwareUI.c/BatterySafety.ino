@@ -118,9 +118,11 @@ void setup() {
   // SET DEFAULT STARTUP MENU
   LCD_Next_Menu(Menu_State_g, DEFAULT_CHARGE_VOLTAGE, DEFAULT_CHARGE_CURRENT, Charging_Time, lcd);
 
+
 }
 
 void loop() {
+
   // Always Check Faults --> GPIO INTERRUPT
   if(!SC_STATE_3v3 || !AMS_FAULT || !IMD_FAULT)
     {
@@ -128,6 +130,8 @@ void loop() {
       digitalWrite(NEG_CONTACTOR_CTRL, LOW);
       digitalWrite(POS_CONTACTOR_CTRL, LOW);
     }
+
+
 
    
   //CHARGE STATE 
