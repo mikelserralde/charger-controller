@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Formula Electric Battery Monitor</title>
+    <link rel="stylesheet" href="css/mystyles.css">
+
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid black;
+        }
+
+    </style>
+
+</head>
+
+<body style="background-color: #262626">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="https://bulma.io">
+                <img src="images/Black_Green.png">
+            </a>
+
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item">
+                    Battery Cells
+                </a>
+
+                <a class="navbar-item">
+                    Faults
+                </a>
+
+            </div>
+        </div>
+    </nav>
+
+    <h1 class="title">
+        Formula Electric
+    </h1>
+
+    <h1>Hello World!</h1>
+
+    We are using Node.js <span id="node-version"></span>, Chromium <span id="chrome-version"></span>, Electron <span id="electron-version"></span>, and Serialport <span id="serialport-version"></span>
+
+    <br>
+    <span id="incoming-data"></span>
+
+    <div id="error"></div>
+    <div id="ports"></div>
+
+    <div class="buttons">
+        <a class="button is-primary">Primary</a>
+        <a class="button is-link">Link</a>
+    </div>
+
+    <div class="table-container">
+
+        <table class="table has-text-centered is-fullwidth">
+            <thead>
+                <tr>
+                    <th><abbr title="COL00"></abbr></th>
+                    <th><abbr title="COL0"></abbr></th>
+                    <th><abbr title="Mod1">1</abbr></th>
+                    <th><abbr title="Mod2">2</abbr></th>
+                    <th><abbr title="Mod3">3</abbr></th>
+                    <th><abbr title="Mod4">4</abbr></th>
+                    <th><abbr title="Mod5">5</abbr></th>
+                    <th><abbr title="Mod6">6</abbr></th>
+                    <th><abbr title="Mod7">7</abbr></th>
+                    <th><abbr title="Mod8">8</abbr></th>
+                    <th><abbr title="Mod9">9</abbr></th>
+                    <th><abbr title="Mod10">10</abbr></th>
+                    <th><abbr title="Mod11">11</abbr></th>
+                    <th><abbr title="Mod12">12</abbr></th>
+                    <th><abbr title="Mod13">13</abbr></th>
+                    <th><abbr title="Mod14">14</abbr></th>
+                    <th><abbr title="Mod15">15</abbr></th>
+                    <th><abbr title="Mod16">16</abbr></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th rowspan="2" class="is-vcentered">A</th>
+                    <td>Voltage</td>
+                    <td id="VA1">00.00</td>
+                    <td id="VA2">00.00</td>
+                    <td id="VA3">00.00</td>
+                    <td id="VA4">00.00</td>
+                    <td id="VA5">00.00</td>
+                    <td id="VA6">00.00</td>
+                    <td id="VA7">00.00</td>
+                    <td id="VA8">00.00</td>
+                    <td id="VA9">00.00</td>
+                    <td id="VA10">00.00</td>
+                    <td id="VA11">00.00</td>
+                    <td id="VA12">00.00</td>
+                    <td id="VA13">00.00</td>
+                    <td id="VA14">00.00</td>
+                    <td id="VA15">00.00</td>
+                    <td id="VA16">00.00</td>
+                </tr>
+                <tr>
+                    <td>Temp</td>
+                    <td id="TA1">00.00</td>
+                    <td id="TA2">00.00</td>
+                    <td id="TA3">00.00</td>
+                    <td id="TA4">00.00</td>
+                    <td id="TA5">00.00</td>
+                    <td id="TA6">00.00</td>
+                    <td id="TA7">00.00</td>
+                    <td id="TA8">00.00</td>
+                    <td id="TA9">00.00</td>
+                    <td id="TA10">00.00</td>
+                    <td id="TA11">00.00</td>
+                    <td id="TA12">00.00</td>
+                    <td id="TA13">00.00</td>
+                    <td id="TA14">00.00</td>
+                    <td id="TA15">00.00</td>
+                    <td id="TA16">00.00</td>
+                </tr>
+                <tr>
+                    <th rowspan="2" class="is-vcentered">B</th>
+                    <td>Voltage</td>
+                    <td id="VB1">00.00</td>
+                    <td id="VB2">00.00</td>
+                    <td id="VB3">00.00</td>
+                    <td id="VB4">00.00</td>
+                    <td id="VB5">00.00</td>
+                    <td id="VB6">00.00</td>
+                    <td id="VB7">00.00</td>
+                    <td id="VB8">00.00</td>
+                    <td id="VB9">00.00</td>
+                    <td id="VB10">00.00</td>
+                    <td id="VB11">00.00</td>
+                    <td id="VB12">00.00</td>
+                    <td id="VB13">00.00</td>
+                    <td id="VB14">00.00</td>
+                    <td id="VB15">00.00</td>
+                    <td id="VB16">00.00</td>
+                </tr>
+                <tr>
+                    <td>Temp</td>
+                    <td id="TB1">00.00</td>
+                    <td id="TB2">00.00</td>
+                    <td id="TB3">00.00</td>
+                    <td id="TB4">00.00</td>
+                    <td id="TB5">00.00</td>
+                    <td id="TB6">00.00</td>
+                    <td id="TB7">00.00</td>
+                    <td id="TB8">00.00</td>
+                    <td id="TB9">00.00</td>
+                    <td id="TB10">00.00</td>
+                    <td id="TB11">00.00</td>
+                    <td id="TB12">00.00</td>
+                    <td id="TB13">00.00</td>
+                    <td id="TB14">00.00</td>
+                    <td id="TB15">00.00</td>
+                    <td id="TB16">00.00</td>
+                </tr>
+                <tr>
+                    <th rowspan="2" class="is-vcentered">C</th>
+                    <td>Voltage</td>
+                    <td id="VC1">00.00</td>
+                    <td id="VC2">00.00</td>
+                    <td id="VC3">00.00</td>
+                    <td id="VC4">00.00</td>
+                    <td id="VC5">00.00</td>
+                    <td id="VC6">00.00</td>
+                    <td id="VC7">00.00</td>
+                    <td id="VC8">00.00</td>
+                    <td id="VC9">00.00</td>
+                    <td id="VC10">00.00</td>
+                    <td id="VC11">00.00</td>
+                    <td id="VC12">00.00</td>
+                    <td id="VC13">00.00</td>
+                    <td id="VC14">00.00</td>
+                    <td id="VC15">00.00</td>
+                    <td id="VC16">00.00</td>
+                </tr>
+                <tr>
+                    <td>Temp</td>
+                    <td id="TC1">00.00</td>
+                    <td id="TC2">00.00</td>
+                    <td id="TC3">00.00</td>
+                    <td id="TC4">00.00</td>
+                    <td id="TC5">00.00</td>
+                    <td id="TC6">00.00</td>
+                    <td id="TC7">00.00</td>
+                    <td id="TC8">00.00</td>
+                    <td id="TC9">00.00</td>
+                    <td id="TC10">00.00</td>
+                    <td id="TC11">00.00</td>
+                    <td id="TC12">00.00</td>
+                    <td id="TC13">00.00</td>
+                    <td id="TC14">00.00</td>
+                    <td id="TC15">00.00</td>
+                    <td id="TC16">00.00</td>
+                </tr>
+                <tr>
+                    <th rowspan="2" class="is-vcentered">D</th>
+                    <td>Voltage</td>
+                    <td id="VD1">00.00</td>
+                    <td id="VD2">00.00</td>
+                    <td id="VD3">00.00</td>
+                    <td id="VD4">00.00</td>
+                    <td id="VD5">00.00</td>
+                    <td id="VD6">00.00</td>
+                    <td id="VD7">00.00</td>
+                    <td id="VD8">00.00</td>
+                    <td id="VD9">00.00</td>
+                    <td id="VD10">00.00</td>
+                    <td id="VD11">00.00</td>
+                    <td id="VD12">00.00</td>
+                    <td id="VD13">00.00</td>
+                    <td id="VD14">00.00</td>
+                    <td id="VD15">00.00</td>
+                    <td id="VD16">00.00</td>
+                </tr>
+                <tr>
+                    <td>Temp</td>
+                    <td id="TD1">00.00</td>
+                    <td id="TD2">00.00</td>
+                    <td id="TD3">00.00</td>
+                    <td id="TD4">00.00</td>
+                    <td id="TD5">00.00</td>
+                    <td id="TD6">00.00</td>
+                    <td id="TD7">00.00</td>
+                    <td id="TD8">00.00</td>
+                    <td id="TD9">00.00</td>
+                    <td id="TD10">00.00</td>
+                    <td id="TD11">00.00</td>
+                    <td id="TD12">00.00</td>
+                    <td id="TD13">00.00</td>
+                    <td id="TD14">00.00</td>
+                    <td id="TD15">00.00</td>
+                    <td id="TD16">00.00</td>
+                </tr>
+                <tr>
+                    <th rowspan="2" class="is-vcentered">E</th>
+                    <td>Voltage</td>
+                    <td id="VE1">00.00</td>
+                    <td id="VE2">00.00</td>
+                    <td id="VE3">00.00</td>
+                    <td id="VE4">00.00</td>
+                    <td id="VE5">00.00</td>
+                    <td id="VE6">00.00</td>
+                    <td id="VE7">00.00</td>
+                    <td id="VE8">00.00</td>
+                    <td id="VE9">00.00</td>
+                    <td id="VE10">00.00</td>
+                    <td id="VE11">00.00</td>
+                    <td id="VE12">00.00</td>
+                    <td id="VE13">00.00</td>
+                    <td id="VE14">00.00</td>
+                    <td id="VE15">00.00</td>
+                    <td id="VE16">00.00</td>
+                </tr>
+                <tr>
+                    <td>Temp</td>
+                    <td id="TE1">00.00</td>
+                    <td id="TE2">00.00</td>
+                    <td id="TE3">00.00</td>
+                    <td id="TE4">00.00</td>
+                    <td id="TE5">00.00</td>
+                    <td id="TE6">00.00</td>
+                    <td id="TE7">00.00</td>
+                    <td id="TE8">00.00</td>
+                    <td id="TE9">00.00</td>
+                    <td id="TE10">00.00</td>
+                    <td id="TE11">00.00</td>
+                    <td id="TE12">00.00</td>
+                    <td id="TE13">00.00</td>
+                    <td id="TE14">00.00</td>
+                    <td id="TE15">00.00</td>
+                    <td id="TE16">00.00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+
+<script src="./renderer.js"></script>
+
+
+</html>
