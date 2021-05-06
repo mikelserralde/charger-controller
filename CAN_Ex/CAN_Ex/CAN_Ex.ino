@@ -1,5 +1,6 @@
 #include <FlexCAN_T4.h>
 #include <isotp.h>
+#include <Metro.h>
 isotp<RX_BANKS_16, 512> tp; /* 16 slots for multi-ID support, at 512bytes buffer each payload rebuild */
 isotp<RX_BANKS_16, 512> tp2;
 
@@ -10,7 +11,33 @@ CAN_message_t msg;  //message to send over CAN - > tp.write
 
 CAN_message_t Rmsg; //message to store CAN.read value
 
+Metro ChargerHeartbeat(1000);
+
+
 int msgcnt=0;
+
+//Send Charger Msg variables
+uint16_t TargetCurrent, TargetVoltage;
+bool ChargeControl;
+
+//Read Charger Msg variables
+uint16_t ChargerVoltage = 0;
+uint16_t ChargerCurrent = 0;
+uint8_t Charger_Status = 0;
+
+//Read AMS Status variables
+uint16_t FaultMessage;
+uint8_t Contactors;
+uint16_t MaxCellTemp, MinCellTemp, StateofCharge;
+
+//Read AMS Voltages
+uint16_t PackVoltage, VehicleVoltage, MaxCellVoltage, MinCellVoltage;
+
+//Read AMS Currents
+uint16_t PackCurrent, DischargeCurrentLimit, ChargeCurrentLimit, PeakCurrent;
+
+//Read Cell Voltages and Temperatures
+uint8_t buff[240];
 
 //untouched send/receive example
 void myCallback(const ISOTP_data &config, const uint8_t *buf) {
@@ -26,23 +53,169 @@ void myCallback(const ISOTP_data &config, const uint8_t *buf) {
 }
 //untouched send/receive example
 void canSniff(const CAN_message_t &msg) {
-  Serial.print("MB "); Serial.print(msg.mb);
-  Serial.print(" OVERRUN: "); Serial.print(msg.flags.overrun);
-  Serial.print(" LEN: "); Serial.print(msg.len);
-  Serial.print(" EXT: "); Serial.print(msg.flags.extended);
-  Serial.print(" TS: "); Serial.print(msg.timestamp);
-  Serial.print(" ID: "); Serial.print(msg.id, HEX);
-  Serial.print(" BUS: "); Serial.print(msg.bus);
-  Serial.print(" Buffer: ");
-  for ( uint8_t i = 0; i < msg.len; i++ ) {
-    Serial.print(msg.buf[i], HEX); Serial.print(" ");
-  } Serial.println();
+//  Serial.print("MB "); Serial.print(msg.mb);
+//  Serial.print(" AAAAAAAAAAAAAAAAAAAAAAAa: "); Serial.print(msg.flags.overrun);
+//  Serial.print(" LEN: "); Serial.print(msg.len);
+//  Serial.print(" EXT: "); Serial.print(msg.flags.extended);
+//  Serial.print(" TS: "); Serial.print(msg.timestamp);
+//  Serial.print(" ID: "); Serial.print(msg.id, HEX);
+//  Serial.print(" BUS: "); Serial.print(msg.bus);
+//  Serial.print(" Buffer: ");
+//  for ( uint8_t i = 0; i < msg.len; i++ ) {
+//    Serial.print(msg.buf[i], HEX); Serial.print(" ");
+//  } Serial.println();
+
+    switch(msg.id){
+
+    case 0x10:
+      ReadAMSStatus(FaultMessage, Contactors, MaxCellTemp, MinCellTemp, StateofCharge, msg);
+      Serial.println(FaultMessage, HEX);
+      delay(10);
+      Serial.println(Contactors, HEX);
+      delay(10);
+      Serial.println(MaxCellTemp, HEX);
+      delay(10);
+      Serial.println(MinCellTemp, HEX);
+      break;
+
+    case 0x11:
+      ReadAMSVoltages(PackVoltage, VehicleVoltage, MaxCellVoltage, MinCellVoltage, msg);
+      Serial.println("PackVoltage");
+      Serial.println(PackVoltage, DEC);
+      delay(10);
+      Serial.println("VehicleVoltage: ");
+      Serial.println(VehicleVoltage, DEC);
+      delay(10);
+      Serial.println("MaxCellVoltage ");
+      Serial.println(MaxCellVoltage, DEC);
+      delay(10);
+      Serial.println("MinCellVoltage ");
+      Serial.println(MinCellVoltage, DEC);
+      break;
+
+    case 0x12: 
+      ReadAMSCurrents(PackCurrent, DischargeCurrentLimit, ChargeCurrentLimit, PeakCurrent, msg);
+      Serial.println("PackCurrent " + PackCurrent);
+      delay(10);
+      Serial.println("DischargeCurrentLimit " + DischargeCurrentLimit);
+      delay(10);
+      Serial.println("ChargeCurrentLimit " + ChargeCurrentLimit);
+      delay(10);
+      Serial.println("PeakCurrent " + PeakCurrent);
+      
+      break;
+
+    default:
+      Serial.println("WTF");
+      break;
+    }
 }
 
-//uint16_t ReadChargerMsg(&current, &voltage, &Charger_Status)
-//{
-//  
-//}
+//Updates values of current, voltage, and charger status variables based on msg from Battery Charger
+//current and voltage variables are 10 times what they really are
+// Ex Current = 582 -- > 58.2 A
+// Ex Voltage = 3201 --> 320.1 V
+void ReadChargerMsg(uint16_t &current, uint16_t &voltage, uint8_t &ChargerStatus, CAN_message_t &msg)
+{
+  //read in voltage high byte then low byte
+  voltage = msg.buf[0];
+  voltage = voltage << 8;
+  voltage |= msg.buf[1];
+
+  //read in current high byte then low byte
+  current = msg.buf[2];
+  current = current << 8;
+  current |= msg.buf[3];
+
+  ChargerStatus = msg.buf[4];
+}
+
+
+//formats a message to send max allowable voltage / current, ChargeControl = 1 --> start charging, 0 --> stop charging
+void SendChargerMsg(uint16_t &current, uint16_t &voltage, bool ChargeControl, CAN_message_t &msg)
+{
+
+  msg.id = 0x1806E5F4;
+  //msg.id = 0xF4E50618;
+  msg.buf[0] = (uint8_t)(voltage >> 8);
+  msg.buf[1] = (uint8_t)(voltage);
+  msg.buf[2] = (uint8_t)(current >> 8);
+  msg.buf[3] = (uint8_t)(current);
+
+  if (ChargeControl == 1) msg.buf[4] = 0x00; //Start Charging
+  if (ChargeControl == 0) msg.buf[4] = 0xFF; //Stop Charging
+  
+}
+
+//Contactors: if a 1 means closed: 100 contact+ closed, 010 contact - closed, 001 contact precharge closed, 111 all closed etc.
+void ReadAMSStatus(uint16_t &FaultMessage, uint8_t &Contactors, uint16_t &MaxCellTemp, uint16_t &MinCellTemp, uint16_t StateofCharge, const CAN_message_t &msg)
+{
+  FaultMessage = msg.buf[0];
+  Contactors = ((msg.buf[1] >> 4) & ( 0x07));
+
+  MaxCellTemp = msg.buf[2];
+  MaxCellTemp = MaxCellTemp << 8;
+  MaxCellTemp |= msg.buf[3];
+
+  MinCellTemp = msg.buf[4];
+  MinCellTemp = MinCellTemp << 8;
+  MinCellTemp |= msg.buf[5];
+
+  StateofCharge = msg.buf[6];
+  StateofCharge = StateofCharge << 8;
+  StateofCharge |= msg.buf[7];
+}
+
+
+void ReadAMSVoltages(uint16_t &PackVoltage, uint16_t &VehicleVoltage, uint16_t &MaxCellVoltage, uint16_t &MinCellVoltage, const CAN_message_t &msg)
+{
+  PackVoltage = msg.buf[0];
+  PackVoltage = PackVoltage << 8;
+  PackVoltage |= msg.buf[1];
+
+  VehicleVoltage = msg.buf[2];
+  VehicleVoltage = VehicleVoltage << 8;
+  VehicleVoltage |= msg.buf[3];
+
+  MaxCellVoltage = msg.buf[4];
+  MaxCellVoltage = MaxCellVoltage << 8;
+  MaxCellVoltage |= msg.buf[5];
+
+  MinCellVoltage = msg.buf[6];
+  MinCellVoltage = MinCellVoltage << 8;
+  MinCellVoltage |= msg.buf[7];
+}
+
+
+void ReadAMSCurrents(uint16_t &PackCurrent, uint16_t &DischargeCurrentLimit, uint16_t &ChargeCurrentLimit, uint16_t &PeakCurrent, const CAN_message_t &msg)
+{
+  PackCurrent = msg.buf[0];
+  PackCurrent = PackCurrent << 8;
+  PackCurrent |= msg.buf[1];
+
+  DischargeCurrentLimit = msg.buf[2];
+  DischargeCurrentLimit = DischargeCurrentLimit << 8;
+  DischargeCurrentLimit |= msg.buf[3];
+
+  ChargeCurrentLimit = msg.buf[4];
+  ChargeCurrentLimit = ChargeCurrentLimit << 8;
+  ChargeCurrentLimit |= msg.buf[5];
+
+  PeakCurrent = msg.buf[6];
+  PeakCurrent = PeakCurrent << 8;
+  PeakCurrent |= msg.buf[7];
+}
+
+
+bool ReadCellVoltandTemp(uint8_t * buff, CAN_message_t &msg)
+{
+  for (int j = 0; j < 7; j++)
+  {
+    buff[ j + msg.buf[7]*7] = msg.buf[j];
+  }
+}
+
+
 
 
 void setup() {
@@ -75,139 +248,31 @@ void setup() {
 //  tp2.onReceive(myCallback); /* set callback */
 
 
-  // MESSAGE EXAMPLE
-  msg.id = 0x111;
-  msg.len = 8;
-  msg.flags.extended = 0;
-  msg.flags.remote   = 0;
-  msg.flags.overrun  = 0;
-  msg.flags.reserved = 0;
-  msg.buf[0] = 10;
-  msg.buf[1] = 20;
-  msg.buf[2] = 0;
-  msg.buf[3] = 100;
-  msg.buf[4] = 128;
-  msg.buf[5] = 64;
-  msg.buf[6] = 32;
-  msg.buf[7] = 16;
-
-    // MESSAGE EXAMPLE
-  msg.len = 8;
-  msg.flags.extended = 0;
-  msg.flags.remote   = 0;
-  msg.flags.overrun  = 0;
-  msg.flags.reserved = 0;
-  msg.buf[0] = 1;
-  msg.buf[1] = 0;
-  msg.buf[2] = 0;
-  msg.buf[3] = 0;
-  msg.buf[4] = 0;
-  msg.buf[5] = 0;
-  msg.buf[6] = 0;
-  msg.buf[7] = 0;
-  msg.id = 0x02;
+TargetCurrent = 0;
+TargetVoltage = 0;
+ChargeControl = 0;
 
 }
 
 void loop() {
 
-
-
   
-  //untouched send/receive example
-  static uint32_t sendTimerCAR = millis();
-  if ( millis() - sendTimerCAR > 4000 ) {
-    Serial.println("Checking CAR CAN CCCC.......");
-    sendTimerCAR = millis();
-    Can3.write(msg);
-    delay(10);
-    msgcnt = Can2.read(msg);
-    Serial.println((String)msgcnt);
-    Rmsg.buf[0]=2;
-    Rmsg.id = 4;
-    Can2.write(Rmsg);
-    msgcnt = Can3.read(msg);
-    canSniff(msg);
-    Serial.println((String)msgcnt);
- 
-  }
-
-
-//duplicated from send/receive example
-
-  static uint32_t sendTimerCHARGER = millis();
-  if ( millis() - sendTimerCHARGER > 5000 ) {
-    Serial.println("Checking CHARGER CAN 1111111111.......");
-//    uint8_t buf[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5 };
-//    const char b[] = "01413AAAAABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-//    ISOTP_data config;
-//    tp2.setWriteBus(&Can3); /* we write to this bus */
-//    config.id = 0x03;
-//    config.flags.extended = 0; /* standard frame */
-//    config.separation_time = 10; /* time between back-to-back frames in millisec */
-//    tp2.write(config, buf, sizeof(buf));
-//    tp2.write(config, b, sizeof(b));
-    sendTimerCHARGER = millis();
-    msg.buf[0] = 2;
-    msg.id = 420;
+  
+  if ( ChargerHeartbeat.check() ) 
+  {
+    SendChargerMsg(TargetCurrent, TargetVoltage, ChargeControl, msg);
     Can2.write(msg);
+    Serial.println("sending don't charge...");
+    //canSniff(msg);
+    ChargerHeartbeat.reset();
+    for (int i = 0; i < 49; i++)
+    {
+      Serial.print(buff[i]);
+    }
+    Serial.printf( FaultMessage + Contactors + MaxCellTemp + MinCellTemp + ChargeControl +
+      PackVoltage + VehicleVoltage + MaxCellVoltage+ MinCellVoltage +
+      PackCurrent + DischargeCurrentLimit + ChargeCurrentLimit + PeakCurrent);
   }
-
-
-//Untouched form dual receivers example
-
-
-//  if(Can2.read(Rmsg))
-//  {
-//    Serial.print("CAN2 "); 
-//    Serial.print("MB: "); Serial.print(Rmsg.mb);
-//    Serial.print("  ID: 0x"); Serial.print(Rmsg.id, HEX );
-//    Serial.print("  EXT: "); Serial.print(Rmsg.flags.extended );
-//    Serial.print("  LEN: "); Serial.print(Rmsg.len);
-//    Serial.print(" DATA: ");
-//    for ( uint8_t i = 0; i < 8; i++ ) {
-//      Serial.print(Rmsg.buf[i]); Serial.print(" ");
-//    }
-//    Serial.print("  TS: "); Serial.println(Rmsg.timestamp);
-//  }
-  
-
-//untouched dual receivers example
-
-//  if(Can3.read(Rmsg))
-//  {
-//    Serial.print("CAN3 "); 
-//    Serial.print("MB: "); Serial.print(Rmsg.mb);
-//    Serial.print("  ID: 0x"); Serial.print(Rmsg.id, HEX );
-//    Serial.print("  EXT: "); Serial.print(Rmsg.flags.extended );
-//    Serial.print("  LEN: "); Serial.print(Rmsg.len);
-//    Serial.print(" DATA: ");
-//    for ( uint8_t i = 0; i < 8; i++ ) {
-//      Serial.print(Rmsg.buf[i]); Serial.print(" ");
-//    }
-//    Serial.print("  TS: "); Serial.println(Rmsg.timestamp);
-  //}
-
-
-
-//One write one receive example
-//
-//  msg.buf[0]++;       //since you are in a loop i just incremented each time in stead of doing it 5 times
-//  Can2.write(msg);    //you could do it your way as well
-//  //Serial.println("T4.0cantest - Repeat: Read bus2, Write bus1");
-//  CAN_message_t inMsg;
-//  if (Can3.read(inMsg)!=0)     // Changed this to if as as opposed to while - the way you had it just gets stuck since you haven't even sent a message yet 
-//  {
-//    Serial.print("W RD bus 2: "); //hexDump(8, inMsg.buf);
-//  }
-//  delay(20);
-
-
-
-
-
-
-
 
 
 
