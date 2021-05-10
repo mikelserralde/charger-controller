@@ -165,24 +165,24 @@ void loop() {
     //Serial.println("sending don't charge...");
     //canSniff(msg);
     ChargerHeartbeat.reset();
-    for (int i = 0; i < 245; i++)
-    {
-      Serial.print(buff[i]);
-    }
-    Serial.print( FaultMessage, HEX);
-    Serial.print( Contactors, HEX );
-    Serial.print( MaxCellTemp, HEX );
-    Serial.print( MinCellTemp, HEX );
-    Serial.print( ChargeControl, HEX );
-    Serial.print( PackVoltage, HEX );
-    Serial.print( VehicleVoltage, HEX );
-    Serial.print( MaxCellVoltage, HEX );
-    Serial.print( MinCellVoltage, HEX );
-    Serial.print( PackCurrent, HEX );
-    Serial.print( DischargeCurrentLimit, HEX );
-    Serial.print( ChargeCurrentLimit, HEX );
-    Serial.print( PeakCurrent, HEX);
-
+//    for (int i = 0; i < 245; i++)
+//    {
+//      Serial.print(buff[i]);
+//    }
+//    Serial.print( FaultMessage, HEX);
+//    Serial.print( Contactors, HEX );
+//    Serial.print( MaxCellTemp, HEX );
+//    Serial.print( MinCellTemp, HEX );
+//    Serial.print( ChargeControl, HEX );
+//    Serial.print( PackVoltage, HEX );
+//    Serial.print( VehicleVoltage, HEX );
+//    Serial.print( MaxCellVoltage, HEX );
+//    Serial.print( MinCellVoltage, HEX );
+//    Serial.print( PackCurrent, HEX );
+//    Serial.print( DischargeCurrentLimit, HEX );
+//    Serial.print( ChargeCurrentLimit, HEX );
+//    Serial.print( PeakCurrent, HEX);
+      Serial.print("Hola Sr. Hayden Long");
 //      if (Can2.read(msg))
 //      {
 //        canSniff(msg);

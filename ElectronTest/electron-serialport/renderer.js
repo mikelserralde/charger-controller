@@ -32,7 +32,7 @@ async function listSerialPorts() {
 //port.pipe(parser)
 const port = new SerialPort('COM3',{baudRate: 9600});
 
-const parser = port.pipe(new ByteLength({length: 280}))
+const parser = port.pipe(new ByteLength({length: 245})) //268? 245+2+1+2+6+6+8
 
 var rows = ["A","B","C","D","E"]
 
@@ -56,10 +56,10 @@ parser.on('data', (data) => {
 	tempB[0] = data[81] | (data[82]<<8);
 	voltagesC[0] = data[98] | (data[99]<<8);
 	tempC[0] = data[130] | (data[131]<<8);
-	voltagesC[0] = data[147] | (data[148]<<8);
-	tempC[0] = data[179] | (data[180]<<8);
-	voltagesC[0] = data[196] | (data[197]<<8);
-	tempC[0] = data[228] | (data[229]<<8);
+	voltagesD[0] = data[147] | (data[148]<<8);
+	tempD[0] = data[179] | (data[180]<<8);
+	voltagesE[0] = data[196] | (data[197]<<8);
+	tempE[0] = data[228] | (data[229]<<8);
 
 	// voltagesA[0] = voltagesA[0]/10000;
 	// var i
